@@ -35,7 +35,8 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '24.x'
-          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       - name: Verify Node.js version
         run: node -v
@@ -123,6 +124,8 @@ jobs:
 
       - name: Publish the plugin to npm with trusted publishing / OIDC
         run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ''
 
       # - name: Trigger Matterbridge Docker Build Main
       #   if: env.PAT_TOKEN != ''
