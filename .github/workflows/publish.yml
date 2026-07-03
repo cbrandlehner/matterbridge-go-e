@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: npm-publish
-  cancel-in-progress: false
+  group: npm-publish-${{ github.event_name }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
