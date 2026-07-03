@@ -1,0 +1,83 @@
+{
+  "title": "Matterbridge go-e plugin",
+  "description": "matterbridge-go-e — go-e Gemini/PRO EV charger via Modbus TCP",
+  "type": "object",
+  "properties": {
+    "name": {
+      "title": "Plugin Name",
+      "description": "Plugin name",
+      "type": "string",
+      "readOnly": true,
+      "ui:widget": "hidden"
+    },
+    "type": {
+      "title": "Plugin Type",
+      "description": "Plugin type",
+      "type": "string",
+      "readOnly": true,
+      "ui:widget": "hidden"
+    },
+    "discovery": {
+      "title": "mDNS Discovery",
+      "description": "Automatically discover go-e chargers on the network via _go-e._go-eCharger._tcp. Manual charger entries override discovery.",
+      "type": "boolean",
+      "default": false
+    },
+    "chargers": {
+      "title": "Chargers",
+      "description": "List of go-e chargers to expose as Matter EVSE devices.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "title": "Host",
+            "description": "IP address or hostname of the go-e charger",
+            "type": "string"
+          },
+          "port": {
+            "title": "Modbus Port",
+            "description": "Modbus TCP port (default 502)",
+            "type": "number",
+            "default": 502
+          },
+          "unitId": {
+            "title": "Modbus Unit ID",
+            "description": "Modbus slave unit ID (default 1)",
+            "type": "number",
+            "default": 1
+          },
+          "name": {
+            "title": "Display Name",
+            "description": "Friendly name shown in Matter (optional)",
+            "type": "string"
+          },
+          "serial": {
+            "title": "Serial Number",
+            "description": "Charger serial number (optional, read from Modbus if omitted)",
+            "type": "string"
+          }
+        },
+        "required": ["host"]
+      }
+    },
+    "pollInterval": {
+      "title": "Poll Interval (ms)",
+      "description": "How often to poll Modbus registers for status updates",
+      "type": "number",
+      "default": 2000
+    },
+    "debug": {
+      "title": "Enable Debug",
+      "description": "Enable debug logging for the plugin",
+      "type": "boolean",
+      "default": false
+    },
+    "unregisterOnShutdown": {
+      "title": "Unregister On Shutdown",
+      "description": "Unregister all devices on shutdown (development only)",
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

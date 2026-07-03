@@ -1,0 +1,9 @@
+{
+  "name": "matterbridge-go-e",
+  "type": "DynamicPlatform",
+  "discovery": false,
+  "chargers": [],
+  "pollInterval": 2000,
+  "debug": false,
+  "unregisterOnShutdown": false
+}
