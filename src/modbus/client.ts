@@ -61,11 +61,46 @@ export class GoEModbusClient implements GoEClient {
   }
 
   /**
-   * Closes the Modbus TCP connection.
+   * Closes the Modbus TCP connection without hanging on never-opened sockets.
+   *
+   * modbus-serial's `close()` only invokes its callback when the TCP port was
+   * fully open. After a failed connect (wrong host, timeout, refused), `isOpen`
+   * stays false and `close()` never settles — which hung Matterbridge startup.
+   * Use `destroy()` for never-opened sockets, and fall back to `destroy()` if a
+   * graceful close does not complete within the request timeout.
    */
   async close(): Promise<void> {
     await new Promise<void>((resolve) => {
-      this.client.close(() => resolve());
+      let settled = false;
+      const done = (): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        resolve();
+      };
+
+      try {
+        if (!this.client.isOpen) {
+          this.client.destroy(done);
+          return;
+        }
+
+        const timer = setTimeout(() => {
+          try {
+            this.client.destroy(done);
+          } catch {
+            done();
+          }
+        }, DEFAULT_TIMEOUT_MS);
+
+        this.client.close(() => {
+          clearTimeout(timer);
+          done();
+        });
+      } catch {
+        done();
+      }
     });
   }
 

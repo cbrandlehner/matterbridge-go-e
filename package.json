@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-go-e",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Matterbridge plugin for go-e Gemini and PRO EV chargers via Modbus TCP",
   "author": "Christian Brandlehner",
   "license": "Apache-2.0",

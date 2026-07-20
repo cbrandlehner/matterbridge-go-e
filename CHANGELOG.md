@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.3] - 2026-07-20
+
+### Fixed
+
+- Hang on wrong/unreachable charger IP: Modbus close after a failed TCP connect never resolved (modbus-serial only completes `close()` when the socket was open), which blocked Matterbridge startup. Failed connections now use `destroy()` and close has a timeout fallback.
+
 ## [0.1.2] - 2026-07-03
 
 ### Fixed
