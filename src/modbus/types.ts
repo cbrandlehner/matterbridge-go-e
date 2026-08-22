@@ -21,6 +21,7 @@ export type GoEStatus = {
   voltageMv: number | null;
   currentMa: number | null;
   sessionEnergyWh: number | null;
+  totalEnergyMwh: number | null;
   serial: string;
   hostname: string;
 };

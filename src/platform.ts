@@ -402,6 +402,9 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
       if (updates.current !== null) {
         await electricalSensor.updateAttribute('ElectricalPowerMeasurement', 'activeCurrent', updates.current, this.log);
       }
+      if (updates.totalEnergyMwh !== null) {
+        await electricalSensor.updateAttribute('ElectricalEnergyMeasurement', 'cumulativeEnergyImported', { energy: updates.totalEnergyMwh }, this.log);
+      }
     }
 
     if (updates.sessionEnergyWh !== null) {
@@ -428,6 +431,7 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
       await electricalSensor.updateAttribute('ElectricalPowerMeasurement', 'activePower', null, this.log);
       await electricalSensor.updateAttribute('ElectricalPowerMeasurement', 'voltage', null, this.log);
       await electricalSensor.updateAttribute('ElectricalPowerMeasurement', 'activeCurrent', null, this.log);
+      // Keep last cumulativeEnergyImported so Home Assistant TOTAL_INCREASING history is not reset.
     }
 
     const energyManagement = evse.getChildEndpointById('DeviceEnergyManagement');

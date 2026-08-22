@@ -38,6 +38,7 @@ Home Assistant supports Matter EVSE without iOS 27. Google Home and Amazon Alexa
 - One Matter EVSE endpoint per configured go-e charger
 - Modbus TCP polling (registers per [go-e API v2](https://github.com/goecharger/go-eCharger-API-v2/blob/main/modbus-en.md))
 - Matter commands: disable charging, enable charging with current limit
+- Electrical power metrics and lifetime energy on the ElectricalSensor child endpoint
 - Offline detection with automatic reconnect
 - Optional mDNS discovery (`_go-e._go-eCharger._tcp.`)
 

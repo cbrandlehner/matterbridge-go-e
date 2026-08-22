@@ -16,6 +16,7 @@ export type MatterEvseUpdates = {
   voltage: number | null;
   current: number | null;
   sessionEnergyWh: number | null;
+  totalEnergyMwh: number | null;
 };
 
 /**
@@ -85,6 +86,7 @@ export function mapStatusToMatter(status: GoEStatus): MatterEvseUpdates {
     voltage: status.voltageMv,
     current: status.currentMa,
     sessionEnergyWh: status.sessionEnergyWh,
+    totalEnergyMwh: status.totalEnergyMwh,
   };
 }
 
@@ -102,5 +104,6 @@ export function mapOfflineToMatter(): MatterEvseUpdates {
     voltage: null,
     current: null,
     sessionEnergyWh: null,
+    totalEnergyMwh: null,
   };
 }

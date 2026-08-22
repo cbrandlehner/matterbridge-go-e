@@ -15,6 +15,9 @@ export const INPUT_VOLT_L1 = 108;
 /** Input register: total power (uint32, two registers). */
 export const INPUT_POWER_TOTAL = 120;
 
+/** Input register: lifetime energy (uint32, two registers). */
+export const INPUT_ENERGY_TOTAL = 128;
+
 /** Input register: session energy (uint32, two registers). */
 export const INPUT_ENERGY_CHARGE = 132;
 
@@ -93,6 +96,16 @@ export function ampRawToMa(raw: number): number {
  */
 export function sessionEnergyRawToWh(raw: number): number {
   return (raw * 10) / 3600;
+}
+
+/**
+ * Converts go-e ENERGY_TOTAL raw value (0.1 kWh units) to milliwatt-hours.
+ *
+ * @param {number} raw - Raw lifetime energy from ENERGY_TOTAL (0.1 kWh units).
+ * @returns {number} Energy in milliwatt-hours.
+ */
+export function totalEnergyRawToMwh(raw: number): number {
+  return raw * 100_000;
 }
 
 /**

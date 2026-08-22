@@ -20,6 +20,7 @@ const mockStatus: GoEStatus = {
   voltageMv: null,
   currentMa: null,
   sessionEnergyWh: null,
+  totalEnergyMwh: 36_000_000,
   serial: '206540',
   hostname: 'C2Home_Gemini_206540',
 };
@@ -153,9 +154,16 @@ describe('matterbridge-go-e platform', () => {
 
   it('should configure devices from Modbus status', async () => {
     await instance.onStart('vitest');
+    const electricalSensor = instance.getDevices()[0]?.getChildEndpointById('ElectricalSensor');
+    if (!electricalSensor) {
+      throw new Error('ElectricalSensor child endpoint missing');
+    }
+    const updateSpy = vi.spyOn(electricalSensor, 'updateAttribute');
+
     await instance.onConfigure();
     expect(mockClient.readStatus).toHaveBeenCalled();
     expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining('Configured EVSE'));
+    expect(updateSpy).toHaveBeenCalledWith('ElectricalEnergyMeasurement', 'cumulativeEnergyImported', { energy: 36_000_000 }, expect.anything());
   });
 
   it('should handle EVSE disable and enable commands', async () => {

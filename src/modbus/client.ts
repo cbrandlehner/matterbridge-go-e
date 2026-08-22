@@ -12,6 +12,7 @@ import {
   INPUT_ALLOW,
   INPUT_CAR_STATE,
   INPUT_ENERGY_CHARGE,
+  INPUT_ENERGY_TOTAL,
   INPUT_ERROR,
   INPUT_POWER_TOTAL,
   INPUT_SERIAL,
@@ -21,6 +22,7 @@ import {
   readAsciiRegisters,
   readUint32Be,
   sessionEnergyRawToWh,
+  totalEnergyRawToMwh,
 } from './registers.js';
 import type { ChargerConnectionConfig, GoEClient, GoEStatus } from './types.js';
 
@@ -112,7 +114,7 @@ export class GoEModbusClient implements GoEClient {
   async readStatus(): Promise<GoEStatus> {
     const telemetry = await this.client.readInputRegisters(INPUT_CAR_STATE, 22);
     const allow = await this.client.readInputRegisters(INPUT_ALLOW, 1);
-    const session = await this.client.readInputRegisters(INPUT_ENERGY_CHARGE, 2);
+    const energy = await this.client.readInputRegisters(INPUT_ENERGY_TOTAL, 6);
     const identity = await this.client.readInputRegisters(INPUT_SERIAL, 12);
 
     const telemetryData = telemetry.data;
@@ -121,7 +123,8 @@ export class GoEModbusClient implements GoEClient {
     const voltageRaw = readUint32Be(telemetryData, INPUT_VOLT_L1 - INPUT_CAR_STATE);
     const currentRaw = readUint32Be(telemetryData, INPUT_VOLT_L1 - INPUT_CAR_STATE + 6);
     const powerRaw = readUint32Be(telemetryData, INPUT_POWER_TOTAL - INPUT_CAR_STATE);
-    const sessionRaw = readUint32Be(session.data, 0);
+    const totalRaw = readUint32Be(energy.data, 0);
+    const sessionRaw = readUint32Be(energy.data, INPUT_ENERGY_CHARGE - INPUT_ENERGY_TOTAL);
 
     const serialFromModbus = readAsciiRegisters(identity.data, 0, 6);
     const hostnameFromModbus = readAsciiRegisters(identity.data, 6, 6);
@@ -134,6 +137,7 @@ export class GoEModbusClient implements GoEClient {
       voltageMv: voltageRaw > 0 ? voltageRaw * 1000 : null,
       currentMa: currentRaw > 0 ? ampRawToMa(currentRaw) : null,
       sessionEnergyWh: sessionRaw > 0 ? sessionEnergyRawToWh(sessionRaw) : null,
+      totalEnergyMwh: totalEnergyRawToMwh(totalRaw),
       serial: this.config.serial ?? serialFromModbus,
       hostname: this.config.name ?? hostnameFromModbus,
     };

@@ -27,6 +27,7 @@ describe('go-e mapper', () => {
       voltageMv: 230000,
       currentMa: 16000,
       sessionEnergyWh: 1500,
+      totalEnergyMwh: 36_000_000,
       serial: '206540',
       hostname: 'C2Home_Gemini_206540',
     });
@@ -38,6 +39,7 @@ describe('go-e mapper', () => {
     expect(updates.voltage).toBe(230000);
     expect(updates.current).toBe(16000);
     expect(updates.sessionEnergyWh).toBe(1500);
+    expect(updates.totalEnergyMwh).toBe(36_000_000);
   });
 
   it('maps offline chargers to fault/disabled state', () => {
@@ -50,5 +52,6 @@ describe('go-e mapper', () => {
     expect(updates.voltage).toBeNull();
     expect(updates.current).toBeNull();
     expect(updates.sessionEnergyWh).toBeNull();
+    expect(updates.totalEnergyMwh).toBeNull();
   });
 });

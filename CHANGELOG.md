@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.4] - 2026-08-22
+
+### Added
+
+- Lifetime charger energy (`ENERGY_TOTAL`) published to `ElectricalEnergyMeasurement.cumulativeEnergyImported` so Home Assistant can use a monotonically increasing kWh sensor on the Energy dashboard. Session energy remains on `EnergyEvse.sessionEnergyCharged`.
+
 ## [0.1.3] - 2026-07-20
 
 ### Fixed
