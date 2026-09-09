@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Replaced the Apple Home guide with a smart home controller matrix in [docs/SmartHome.md](./docs/SmartHome.md). Apple Home does not support Matter EVSE; Home Assistant remains the recommended controller.
+
 ## [0.1.4] - 2026-08-22
 
 ### Added

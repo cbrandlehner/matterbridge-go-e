@@ -21,17 +21,9 @@ Matterbridge plugin that exposes **go-e Gemini and PRO** EV chargers as Matter *
 
 ## Controller requirements
 
-### Apple Home — iOS 27 beta required
+See **[docs/SmartHome.md](./docs/SmartHome.md)** for Matter controller compatibility.
 
-**You must run iOS 27 beta** on the iPhone or iPad used with Apple Home to make use of this plugin. Earlier releases (including iOS 26.x) do not support Matter EVSE devices: the charger may appear after pairing but Home shows it as an unsupported device type with no controls or energy data.
-
-See **[docs/APPLE_HOME.md](./docs/APPLE_HOME.md)** for the full Apple Home pairing guide, home hub notes, and known beta limitations.
-
-Install the beta from the [Apple Beta Software Program](https://beta.apple.com/), then pair the Matterbridge bridge as usual.
-
-### Other controllers
-
-Home Assistant supports Matter EVSE without iOS 27. Google Home and Amazon Alexa have limited or no EVSE support regardless of iOS version.
+**Home Assistant** supports Matter EVSE and is the recommended controller for this plugin. Apple Home does not support Matter Energy EVSE. Google Home and Amazon Alexa have limited or no EVSE support.
 
 ## Plugin overview
 
@@ -298,7 +290,7 @@ See also the [Style Guide](./STYLEGUIDE.md) for JSDoc, naming, and logging conve
 
 ## Documentation
 
-- [Apple Home requirements (iOS 27 beta)](./docs/APPLE_HOME.md)
+- [Smart home controllers](./docs/SmartHome.md)
 - [Matterbridge documentation](https://matterbridge.io)
 - [Matterbridge developer guide](https://github.com/Luligu/matterbridge/blob/main/README-DEV.md)
 
