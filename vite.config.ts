@@ -47,6 +47,7 @@ export default defineConfig({
         '**/vendor/',
         '**/vitest/**',
         '**/src/**/*.d.ts',
+        '**/src/modbus/types.ts',
       ],
     },
   },

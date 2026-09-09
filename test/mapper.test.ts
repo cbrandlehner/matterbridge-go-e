@@ -3,7 +3,7 @@ import { EnergyEvse } from 'matterbridge/matter/clusters';
 import { mapCarState, mapGoEErrorToFaultState, mapOfflineToMatter, mapStatusToMatter } from '../src/modbus/mapper.js';
 
 describe('go-e mapper', () => {
-  it('maps car states to Matter EVSE states', () => {
+  it('should map car states to Matter EVSE states', () => {
     expect(mapCarState(1)).toBe(EnergyEvse.State.NotPluggedIn);
     expect(mapCarState(2)).toBe(EnergyEvse.State.PluggedInCharging);
     expect(mapCarState(3)).toBe(EnergyEvse.State.PluggedInDemand);
@@ -11,7 +11,7 @@ describe('go-e mapper', () => {
     expect(mapCarState(0)).toBe(EnergyEvse.State.Fault);
   });
 
-  it('maps go-e errors to Matter fault states', () => {
+  it('should map go-e errors to Matter fault states', () => {
     expect(mapGoEErrorToFaultState(0)).toBe(EnergyEvse.FaultState.NoError);
     expect(mapGoEErrorToFaultState(1)).toBe(EnergyEvse.FaultState.GroundFault);
     expect(mapGoEErrorToFaultState(8)).toBe(EnergyEvse.FaultState.GroundFault);
@@ -19,14 +19,14 @@ describe('go-e mapper', () => {
     expect(mapGoEErrorToFaultState(10)).toBe(EnergyEvse.FaultState.Other);
   });
 
-  it('maps a full status snapshot', () => {
+  it('should map a full status snapshot including disabled supply', () => {
     const updates = mapStatusToMatter({
       carState: 2,
       allow: 0,
       error: 0,
-      powerTotalMw: 3600000,
-      voltageMv: 230000,
-      currentMa: 16000,
+      powerTotalMw: 3_600_000,
+      voltageMv: 230_000,
+      currentMa: 16_000,
       sessionEnergyWh: 1500,
       totalEnergyMwh: 36_000_000,
       serial: '206540',
@@ -36,14 +36,14 @@ describe('go-e mapper', () => {
     expect(updates.state).toBe(EnergyEvse.State.PluggedInCharging);
     expect(updates.supplyState).toBe(EnergyEvse.SupplyState.Disabled);
     expect(updates.faultState).toBe(EnergyEvse.FaultState.NoError);
-    expect(updates.activePower).toBe(3600000);
-    expect(updates.voltage).toBe(230000);
-    expect(updates.current).toBe(16000);
+    expect(updates.activePower).toBe(3_600_000);
+    expect(updates.voltage).toBe(230_000);
+    expect(updates.current).toBe(16_000);
     expect(updates.sessionEnergyWh).toBe(1500);
     expect(updates.totalEnergyMwh).toBe(36_000_000);
   });
 
-  it('maps offline chargers to fault/disabled state', () => {
+  it('should map offline chargers to fault/disabled state', () => {
     const updates = mapOfflineToMatter();
 
     expect(updates.state).toBe(EnergyEvse.State.Fault);

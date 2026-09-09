@@ -8,6 +8,10 @@ All notable changes to this project are documented in this file.
 
 - Replaced the Apple Home guide with a smart home controller matrix in [docs/SmartHome.md](./docs/SmartHome.md). Apple Home does not support Matter EVSE; Home Assistant remains the recommended controller.
 
+### Fixed
+
+- Codecov CI: added Jest and Vitest coverage for Modbus, mDNS, and remaining platform branches so the 100% coverage gate can upload reports.
+
 ## [0.1.4] - 2026-08-22
 
 ### Added
