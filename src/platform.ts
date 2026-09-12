@@ -439,10 +439,9 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
     const sessionStarted = status.unlockedBy > 0 && runtime.lastUnlockedBy === 0 && uidKey !== '';
 
     if (status.rfidUid && (uidChanged || sessionStarted)) {
-      const evse = runtime.evse as Evse & { triggerRfidEvent?: (uid: Uint8Array, log?: AnsiLogger) => Promise<boolean> };
-      if (typeof evse.triggerRfidEvent === 'function') {
-        await evse.triggerRfidEvent(status.rfidUid, this.log);
-      }
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- triggerRfidEvent is Matterbridge >= 3.10.9
+      const evse = runtime.evse as Evse & { triggerRfidEvent: (uid: Uint8Array, log?: AnsiLogger) => Promise<boolean> };
+      await evse.triggerRfidEvent(status.rfidUid, this.log);
       this.log.info(`RFID scan on ${runtime.config.host}: uid=${uidKey} card=${status.unlockedBy}`);
       this.log.debug(`RFID card energy (Wh) on ${runtime.config.host}: ${status.cardEnergyWh.join(',')}`);
     }

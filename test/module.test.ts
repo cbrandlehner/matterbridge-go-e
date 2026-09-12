@@ -441,7 +441,7 @@ describe('matterbridge-go-e platform', () => {
     await failingInstance.onShutdown();
   }, 15_000);
 
-  it('should log an RFID scan when triggerRfidEvent is not available', async () => {
+  it('should log an RFID scan for an out-of-range unlock slot', async () => {
     const uid = Uint8Array.from([0x04, 0xa1, 0xb2, 0xc3]);
     jest.mocked(mockClient.readStatus).mockResolvedValue({
       ...mockStatus,
@@ -450,6 +450,10 @@ describe('matterbridge-go-e platform', () => {
       cardEnergyWh: [...EMPTY_CARD_ENERGY_WH],
     });
     await instance.onStart('jest');
+    const device = instance.getDevices()[0] as MatterbridgeEndpoint & {
+      triggerRfidEvent?: (uid: Uint8Array, log?: unknown) => Promise<boolean>;
+    };
+    device.triggerRfidEvent = jest.fn(async () => true);
     await instance.onConfigure();
     expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining('uid=04a1b2c3 card=11'));
   });
