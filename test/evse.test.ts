@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 import type { Evse } from 'matterbridge/devices';
 import type { AnsiLogger } from 'matterbridge/logger';
 
-import { createGoEEvse, emitRfidEvent, type RfidEvseConstructor } from '../src/evse.js';
+import { createGoEEvse, emitRfidEvent } from '../src/evse.js';
 
 class LegacyEvse {
   constructor(
@@ -26,13 +26,13 @@ class RfidEvse {
 
 describe('createGoEEvse', () => {
   it('should omit EvseOptions when the host has no RFID API', () => {
-    const evse = createGoEEvse('Garage', '206540', LegacyEvse as unknown as RfidEvseConstructor);
+    const evse = createGoEEvse('Garage', '206540', LegacyEvse);
     expect(evse).toBeInstanceOf(LegacyEvse);
     expect((evse as unknown as LegacyEvse).options).toBeUndefined();
   });
 
   it('should enable the Rfid feature when triggerRfidEvent exists', () => {
-    const evse = createGoEEvse('Garage', '206540', RfidEvse as unknown as RfidEvseConstructor);
+    const evse = createGoEEvse('Garage', '206540', RfidEvse);
     expect(evse).toBeInstanceOf(RfidEvse);
     expect((evse as unknown as RfidEvse).options).toEqual({ rfid: true });
   });

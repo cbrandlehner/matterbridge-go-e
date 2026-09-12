@@ -6,8 +6,19 @@
 import { Evse } from 'matterbridge/devices';
 import type { AnsiLogger } from 'matterbridge/logger';
 
-/** Evse constructor that accepts Matterbridge 3.10.9 `EvseOptions` as the third argument. */
-export type RfidEvseConstructor = new (name: string, serial: string, options?: { rfid: boolean }) => Evse;
+/** Constructor used to create an {@link Evse} (host class or test double). */
+type EvseCtor = new (...args: unknown[]) => Evse;
+
+/**
+ * Narrows a class object to an Evse constructor.
+ *
+ * @param {object} ctor - Host `Evse` class or a test double.
+ * @returns {EvseCtor} Construct signature used by {@link createGoEEvse}.
+ */
+function toEvseCtor(ctor: object): EvseCtor {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- host Evse and test doubles share no common construct signature
+  return ctor as EvseCtor;
+}
 
 /**
  * Creates an EVSE endpoint and enables the EnergyEvse `Rfid` feature when available.
@@ -18,17 +29,13 @@ export type RfidEvseConstructor = new (name: string, serial: string, options?: {
  *
  * @param {string} deviceName - Matter device name.
  * @param {string} serial - Matter serial number.
- * @param {RfidEvseConstructor} [EvseClass] - Evse constructor, overridable in tests.
+ * @param {object} [EvseClass] - Evse constructor, overridable in tests.
  * @returns {Evse} EVSE endpoint.
  */
-// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- EvseOptions exists only on Matterbridge >= 3.10.9
-export function createGoEEvse(deviceName: string, serial: string, EvseClass: RfidEvseConstructor = Evse as unknown as RfidEvseConstructor): Evse {
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- triggerRfidEvent exists only on Matterbridge >= 3.10.9
-  const hasRfidApi = typeof (EvseClass.prototype as { triggerRfidEvent?: unknown }).triggerRfidEvent === 'function';
-  if (!hasRfidApi) {
-    return new EvseClass(deviceName, serial);
-  }
-  return new EvseClass(deviceName, serial, { rfid: true });
+export function createGoEEvse(deviceName: string, serial: string, EvseClass: object = Evse): Evse {
+  const Ctor = toEvseCtor(EvseClass);
+  const hasRfidApi = typeof Reflect.get(Ctor.prototype, 'triggerRfidEvent') === 'function';
+  return new Ctor(...(hasRfidApi ? [deviceName, serial, { rfid: true }] : [deviceName, serial]));
 }
 
 /**
