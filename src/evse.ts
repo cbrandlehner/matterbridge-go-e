@@ -4,6 +4,7 @@
  */
 
 import { Evse } from 'matterbridge/devices';
+import type { AnsiLogger } from 'matterbridge/logger';
 
 /** Evse constructor that accepts Matterbridge 3.10.9 `EvseOptions` as the third argument. */
 export type RfidEvseConstructor = new (name: string, serial: string, options?: { rfid: boolean }) => Evse;
@@ -28,4 +29,18 @@ export function createGoEEvse(deviceName: string, serial: string, EvseClass: Rfi
     return new EvseClass(deviceName, serial);
   }
   return new EvseClass(deviceName, serial, { rfid: true });
+}
+
+/**
+ * Emits a Matter EnergyEvse `Rfid` event on a 3.10.9+ Evse endpoint.
+ *
+ * @param {Evse} evse - EVSE endpoint created by {@link createGoEEvse}.
+ * @param {Uint8Array} uid - RFID UID of length 4, 7, or 10.
+ * @param {AnsiLogger} log - Logger forwarded to Matterbridge.
+ * @returns {Promise<void>} Resolves after the host RFID helper returns.
+ */
+export async function emitRfidEvent(evse: Evse, uid: Uint8Array, log: AnsiLogger): Promise<void> {
+  const triggerRfidEvent = Reflect.get(evse, 'triggerRfidEvent');
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- triggerRfidEvent is not in the 3.9.x Evse typings
+  await (triggerRfidEvent as (this: Evse, uid: Uint8Array, log?: AnsiLogger) => Promise<boolean>).call(evse, uid, log);
 }

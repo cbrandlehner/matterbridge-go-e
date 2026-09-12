@@ -9,7 +9,7 @@ import type { AnsiLogger, LogLevel } from 'matterbridge/logger';
 import { DeviceEnergyManagement, EnergyEvse } from 'matterbridge/matter/clusters';
 
 import { discoverGoEChargers } from './discovery/mdns.js';
-import { createGoEEvse } from './evse.js';
+import { createGoEEvse, emitRfidEvent } from './evse.js';
 import { createGoEClient } from './modbus/client.js';
 import { mapOfflineToMatter, mapStatusToMatter } from './modbus/mapper.js';
 import { clamp, formatRfidUidHex } from './modbus/registers.js';
@@ -439,9 +439,7 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
     const sessionStarted = status.unlockedBy > 0 && runtime.lastUnlockedBy === 0 && uidKey !== '';
 
     if (status.rfidUid && (uidChanged || sessionStarted)) {
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- triggerRfidEvent is Matterbridge >= 3.10.9
-      const evse = runtime.evse as Evse & { triggerRfidEvent: (uid: Uint8Array, log?: AnsiLogger) => Promise<boolean> };
-      await evse.triggerRfidEvent(status.rfidUid, this.log);
+      await emitRfidEvent(runtime.evse, status.rfidUid, this.log);
       this.log.info(`RFID scan on ${runtime.config.host}: uid=${uidKey} card=${status.unlockedBy}`);
       this.log.debug(`RFID card energy (Wh) on ${runtime.config.host}: ${status.cardEnergyWh.join(',')}`);
     }

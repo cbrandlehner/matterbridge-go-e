@@ -1,4 +1,8 @@
-import { createGoEEvse, type RfidEvseConstructor } from '../src/evse.js';
+import { jest } from '@jest/globals';
+import type { Evse } from 'matterbridge/devices';
+import type { AnsiLogger } from 'matterbridge/logger';
+
+import { createGoEEvse, emitRfidEvent, type RfidEvseConstructor } from '../src/evse.js';
 
 class LegacyEvse {
   constructor(
@@ -31,5 +35,15 @@ describe('createGoEEvse', () => {
     const evse = createGoEEvse('Garage', '206540', RfidEvse as unknown as RfidEvseConstructor);
     expect(evse).toBeInstanceOf(RfidEvse);
     expect((evse as unknown as RfidEvse).options).toEqual({ rfid: true });
+  });
+});
+
+describe('emitRfidEvent', () => {
+  it('should forward the UID to triggerRfidEvent', async () => {
+    const triggerRfidEvent = jest.fn(async () => true);
+    const uid = Uint8Array.from([0x04, 0xa1, 0xb2, 0xc3]);
+    const log = { debug: jest.fn() } as unknown as AnsiLogger;
+    await emitRfidEvent({ triggerRfidEvent } as unknown as Evse, uid, log);
+    expect(triggerRfidEvent).toHaveBeenCalledWith(uid, log);
   });
 });
