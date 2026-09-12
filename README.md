@@ -11,6 +11,7 @@
 [![TypeScript Native](https://img.shields.io/badge/TypeScript_Native-3178C6?logo=typescript&logoColor=white)](https://github.com/microsoft/typescript-go)
 [![ESM](https://img.shields.io/badge/ESM-Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![matterbridge.io](https://img.shields.io/badge/matterbridge.io-online-brightgreen)](https://matterbridge.io)
+[![Unofficial](https://img.shields.io/badge/vendor_support-none-lightgrey.svg)](#disclaimer)
 
 [![powered by](https://img.shields.io/badge/powered%20by-matterbridge-blue)](https://www.npmjs.com/package/matterbridge)
 [![powered by](https://img.shields.io/badge/powered%20by-matter--history-blue)](https://www.npmjs.com/package/matter-history)
@@ -18,6 +19,8 @@
 [![powered by](https://img.shields.io/badge/powered%20by-node--persist--manager-blue)](https://www.npmjs.com/package/node-persist-manager)
 
 Matterbridge plugin that exposes **go-e Gemini and PRO** EV chargers as Matter **Energy EVSE** devices over **Modbus TCP**.
+
+> **Disclaimer.** matterbridge-go-e is an independent, no-support open-source project. It is not affiliated with, endorsed by, or supported by go-e, Matterbridge, or any other vendor whose products it can talk to. Use it at your own risk.
 
 ## Controller requirements
 
@@ -30,7 +33,7 @@ See **[docs/SmartHome.md](./docs/SmartHome.md)** for Matter controller compatibi
 - One Matter EVSE endpoint per configured go-e charger
 - Modbus TCP polling (registers per [go-e API v2](https://github.com/goecharger/go-eCharger-API-v2/blob/main/modbus-en.md))
 - Matter commands: disable charging, enable charging with current limit
-- RFID card scans published as Matter EnergyEvse `Rfid` events (last UID, unlock slot, per-card energy)
+- RFID card scans published as Matter EnergyEvse `Rfid` events (see [RFID](#rfid))
 - Electrical power metrics and lifetime energy on the ElectricalSensor child endpoint
 - Offline detection with automatic reconnect
 - Optional mDNS discovery (`_go-e._go-eCharger._tcp.`)
@@ -99,6 +102,29 @@ The charger must be reachable on the LAN from the Matterbridge host.
 ```bash
 node scripts/test-modbus.mjs <charger-ip>
 ```
+
+## RFID
+
+Requires **Matterbridge 3.10.9+** and go-e firmware **55.5+** (for `RFID_CARD`). The EVSE is created with the Matter `Rfid` feature enabled.
+
+On each Modbus poll the plugin reads:
+
+| Register      | Name                          | Use                                                                              |
+| ------------- | ----------------------------- | -------------------------------------------------------------------------------- |
+| Input 203     | `UNLOCKED_BY`                 | Slot 1–10 that unlocked the current session (`0` = none)                         |
+| Input 327–331 | `RFID_CARD`                   | Last scanned UID (4, 7, or 10 bytes; shorter IDs are padded with trailing zeros) |
+| Input 332–371 | `ENERGY_CARD0`–`ENERGY_CARD9` | Lifetime energy per RFID slot, in Wh                                             |
+
+A Matter EnergyEvse `Rfid` event is emitted when:
+
+- the last-scanned UID changes, or
+- `UNLOCKED_BY` goes from `0` to a slot while a UID is known (same chip, new session)
+
+The UID is the event payload. Slot index and per-card energy are logged (`info` / `debug`). They are not Matter attributes.
+
+Modbus does **not** expose the learned card list (names or stored UIDs). Only the last scan, the unlock slot, and the ten energy counters are available. If the RFID registers are missing (older firmware), the charger stays online and RFID fields stay empty.
+
+Home Assistant can receive the `Rfid` event on the Matter EVSE device. Apple Home does not support Matter EVSE, so RFID events are not visible there.
 
 ---
 
@@ -294,5 +320,9 @@ See also the [Style Guide](./STYLEGUIDE.md) for JSDoc, naming, and logging conve
 - [Smart home controllers](./docs/SmartHome.md)
 - [Matterbridge documentation](https://matterbridge.io)
 - [Matterbridge developer guide](https://github.com/Luligu/matterbridge/blob/main/README-DEV.md)
+
+## Disclaimer
+
+matterbridge-go-e is community software. go-e, Matterbridge, and other vendors whose products appear in this documentation do **not** provide support for this plugin, and this repository does not offer a support contract either. Product names appear only to describe interoperability.
 
 ---

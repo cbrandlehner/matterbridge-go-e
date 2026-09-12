@@ -5,7 +5,7 @@ This plugin exposes go-e chargers as Matter **Energy EVSE** devices. Support dep
 | Controller | EVSE support |
 |------------|--------------|
 | Apple Home | Not supported. The charger may pair but Home shows it as an unsupported type with no EVSE controls or energy data. Energy views in Home cover smart plugs and outlets, not EV chargers. |
-| Home Assistant | Full Matter EVSE support |
+| Home Assistant | Full Matter EVSE support, including EnergyEvse `Rfid` events from scanned cards |
 | Google Home | Limited |
 | Amazon Alexa | EVSE not supported |
 

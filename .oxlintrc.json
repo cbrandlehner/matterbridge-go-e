@@ -179,7 +179,8 @@
         "jsdoc/require-property-description": "off",
         "jsdoc/require-property-type": "off",
         "import/first": "off",
-        "import/no-relative-parent-imports": "off"
+        "import/no-relative-parent-imports": "off",
+        "node/no-top-level-await": "off"
       }
     },
     /* Vitest */
@@ -218,7 +219,8 @@
         "jsdoc/require-property-description": "off",
         "jsdoc/require-property-type": "off",
         "import/first": "off",
-        "import/no-relative-parent-imports": "off"
+        "import/no-relative-parent-imports": "off",
+        "node/no-top-level-await": "off"
       }
     },
     /* Bun */

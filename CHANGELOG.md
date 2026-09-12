@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-09-12
+
 ### Added
 
 - RFID support via Matterbridge 3.10.9+: `Evse` is created with `rfid: true`, and go-e Modbus `UNLOCKED_BY` (203), `RFID_CARD` (327–331), and `ENERGY_CARD0–9` (332–371) are polled. A new or repeated card session emits the EnergyEvse `Rfid` event.
@@ -11,6 +13,8 @@ All notable changes to this project are documented in this file.
 ### Changed
 
 - Replaced the Apple Home guide with a smart home controller matrix in [docs/SmartHome.md](./docs/SmartHome.md). Apple Home does not support Matter EVSE; Home Assistant remains the recommended controller.
+- README: vendor-support disclaimer (`vendor_support-none` badge) and RFID register documentation.
+- Dependency updates (Jest 30.5, oxlint 1.82, oxfmt 0.67, Vitest 5, and patch bumps). TypeScript stays on 6.x for `ts-jest` peer compatibility.
 
 ### Fixed
 

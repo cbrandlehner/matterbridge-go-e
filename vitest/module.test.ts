@@ -344,7 +344,6 @@ describe('matterbridge-go-e platform', () => {
     try {
       await instance.onStart('vitest');
       expect(callbacks.length).toBeGreaterThan(0);
-      // @ts-expect-error Accessing private method for testing purposes
       const pollSpy = vi.spyOn(instance, 'pollAll').mockImplementation(async () => {});
       callbacks[0]();
       expect(pollSpy).toHaveBeenCalled();

@@ -147,7 +147,7 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
    * @returns {GoEPlatformConfig} Plugin configuration.
    */
   private get pluginConfig(): GoEPlatformConfig {
-    return this.config as GoEPlatformConfig;
+    return this.config;
   }
 
   /**
