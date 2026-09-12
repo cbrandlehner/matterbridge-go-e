@@ -11,6 +11,7 @@ import type { MatterbridgeEndpoint, PlatformMatterbridge } from 'matterbridge';
 import { AnsiLogger, LogLevel } from 'matterbridge/logger';
 import { VendorId } from 'matterbridge/matter';
 
+import { EMPTY_CARD_ENERGY_WH } from '../src/modbus/registers.js';
 import type { GoEClient, GoEStatus } from '../src/modbus/types.js';
 import initializePlugin, { GoEPlatform, type GoEPlatformConfig } from '../src/module.js';
 
@@ -25,6 +26,9 @@ const mockStatus: GoEStatus = {
   totalEnergyMwh: 36_000_000,
   serial: '206540',
   hostname: 'C2Home_Gemini_206540',
+  unlockedBy: 0,
+  rfidUid: null,
+  cardEnergyWh: [...EMPTY_CARD_ENERGY_WH],
 };
 
 const createMockClient = (): GoEClient => ({
@@ -65,9 +69,9 @@ const mockMatterbridge: PlatformMatterbridge = {
   matterbridgePluginDirectory: path.join('.cache', 'jest', 'GoEPlugin', 'Matterbridge'),
   matterbridgeCertDirectory: path.join('.cache', 'jest', 'GoEPlugin', '.mattercert'),
   globalModulesDirectory: path.join('.cache', 'jest', 'GoEPlugin', 'node_modules'),
-  matterbridgeVersion: '3.9.0',
-  matterbridgeLatestVersion: '3.9.0',
-  matterbridgeDevVersion: '3.9.0',
+  matterbridgeVersion: '3.10.9',
+  matterbridgeLatestVersion: '3.10.9',
+  matterbridgeDevVersion: '3.10.9',
   frontendVersion: '3.0.0',
   bridgeMode: 'bridge',
   restartMode: 'docker',
@@ -138,7 +142,7 @@ describe('matterbridge-go-e platform', () => {
 
   it('should throw when matterbridge version is too old', () => {
     expect(() => new GoEPlatform({ ...mockMatterbridge, matterbridgeVersion: '2.0.0' }, mockLog, mockConfig, () => mockClient)).toThrow(
-      'This plugin requires Matterbridge version >= "3.9.0".',
+      'This plugin requires Matterbridge version >= "3.10.9".',
     );
   });
 
@@ -436,4 +440,61 @@ describe('matterbridge-go-e platform', () => {
     expect(failingInstance.getDevices()).toHaveLength(0);
     await failingInstance.onShutdown();
   }, 15_000);
+
+  it('should log an RFID scan when triggerRfidEvent is not available', async () => {
+    const uid = Uint8Array.from([0x04, 0xa1, 0xb2, 0xc3]);
+    jest.mocked(mockClient.readStatus).mockResolvedValue({
+      ...mockStatus,
+      unlockedBy: 11,
+      rfidUid: uid,
+      cardEnergyWh: [...EMPTY_CARD_ENERGY_WH],
+    });
+    await instance.onStart('jest');
+    await instance.onConfigure();
+    expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining('uid=04a1b2c3 card=11'));
+  });
+
+  it('should emit an RFID event when a new UID is scanned and on a new card session', async () => {
+    jest.mocked(mockClient.readStatus).mockResolvedValue(mockStatus);
+    await instance.onStart('jest');
+    const device = instance.getDevices()[0] as MatterbridgeEndpoint & {
+      triggerRfidEvent?: (uid: Uint8Array, log?: unknown) => Promise<boolean>;
+    };
+    const triggerRfidEvent = jest.fn(async () => true);
+    device.triggerRfidEvent = triggerRfidEvent;
+
+    const uid = Uint8Array.from([0x04, 0xa1, 0xb2, 0xc3]);
+    const cardEnergyWh = [12_500, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    jest.mocked(mockClient.readStatus).mockResolvedValue({
+      ...mockStatus,
+      unlockedBy: 1,
+      rfidUid: uid,
+      cardEnergyWh,
+    });
+    await instance.onConfigure();
+    expect(triggerRfidEvent).toHaveBeenCalledWith(uid, expect.anything());
+    expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining('uid=04a1b2c3 card=1'));
+
+    triggerRfidEvent.mockClear();
+    await instance.onConfigure();
+    expect(triggerRfidEvent).not.toHaveBeenCalled();
+
+    jest.mocked(mockClient.readStatus).mockResolvedValue({
+      ...mockStatus,
+      unlockedBy: 0,
+      rfidUid: uid,
+      cardEnergyWh,
+    });
+    await instance.onConfigure();
+    expect(triggerRfidEvent).not.toHaveBeenCalled();
+
+    jest.mocked(mockClient.readStatus).mockResolvedValue({
+      ...mockStatus,
+      unlockedBy: 1,
+      rfidUid: uid,
+      cardEnergyWh,
+    });
+    await instance.onConfigure();
+    expect(triggerRfidEvent).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,6 +1,7 @@
 import { EnergyEvse } from 'matterbridge/matter/clusters';
 
 import { mapCarState, mapGoEErrorToFaultState, mapOfflineToMatter, mapStatusToMatter } from '../src/modbus/mapper.js';
+import { EMPTY_CARD_ENERGY_WH } from '../src/modbus/registers.js';
 
 describe('go-e mapper', () => {
   it('maps car states to Matter EVSE states', () => {
@@ -31,6 +32,9 @@ describe('go-e mapper', () => {
       totalEnergyMwh: 36_000_000,
       serial: '206540',
       hostname: 'C2Home_Gemini_206540',
+      unlockedBy: 0,
+      rfidUid: null,
+      cardEnergyWh: [...EMPTY_CARD_ENERGY_WH],
     });
 
     expect(updates.state).toBe(EnergyEvse.State.PluggedInCharging);

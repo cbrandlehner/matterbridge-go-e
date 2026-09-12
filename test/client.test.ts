@@ -183,6 +183,9 @@ describe('GoEModbusClient', () => {
       totalEnergyMwh: 36_000_000,
       serial: '206540',
       hostname: 'C2Home',
+      unlockedBy: 0,
+      rfidUid: null,
+      cardEnergyWh: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     });
   });
 
@@ -203,7 +206,53 @@ describe('GoEModbusClient', () => {
       totalEnergyMwh: 0,
       serial: 'CFG001',
       hostname: 'Garage',
+      unlockedBy: 0,
+      rfidUid: null,
+      cardEnergyWh: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     });
+  });
+
+  it('should parse RFID unlock slot, UID, and card energy counters', async () => {
+    const telemetry = Array.from({ length: 22 }, () => 0);
+    const energy = Array.from({ length: 6 }, () => 0);
+    const uidWords = [0x04a1, 0xb2c3, 0, 0, 0];
+    const energyBytes = new Uint8Array(8);
+    new DataView(energyBytes.buffer).setFloat64(0, 12_500, false);
+    const card0 = [0, 0, 0, 0].map((_, index) => energyBytes[index * 2] * 256 + energyBytes[index * 2 + 1]);
+    const rfidBlock = [...uidWords, ...card0, ...Array.from({ length: 36 }, () => 0)];
+
+    mockModbus.readInputRegisters
+      .mockResolvedValueOnce({ data: telemetry })
+      .mockResolvedValueOnce({ data: [1] })
+      .mockResolvedValueOnce({ data: energy })
+      .mockResolvedValueOnce({ data: [...encodeAscii('206540', 6), ...encodeAscii('C2Home', 6)] })
+      .mockResolvedValueOnce({ data: [2] })
+      .mockResolvedValueOnce({ data: rfidBlock });
+
+    const client = new GoEModbusClient({ host: '10.0.0.8', port: 502, unitId: 1 }, mockLog);
+    const status = await client.readStatus();
+
+    expect(status.unlockedBy).toBe(2);
+    expect(status.rfidUid).toEqual(Uint8Array.from([0x04, 0xa1, 0xb2, 0xc3]));
+    expect(status.cardEnergyWh[0]).toBe(12_500);
+    expect(status.cardEnergyWh[1]).toBe(0);
+  });
+
+  it('should keep the charger online when RFID registers are unavailable', async () => {
+    mockModbus.readInputRegisters
+      .mockResolvedValueOnce({ data: [] })
+      .mockResolvedValueOnce({ data: [] })
+      .mockResolvedValueOnce({ data: [] })
+      .mockResolvedValueOnce({ data: [] })
+      .mockRejectedValueOnce(new Error('illegal data address'));
+
+    const client = new GoEModbusClient({ host: '10.0.0.8', port: 502, unitId: 1, name: 'Garage', serial: 'CFG001' }, mockLog);
+    const status = await client.readStatus();
+
+    expect(status.unlockedBy).toBe(0);
+    expect(status.rfidUid).toBeNull();
+    expect(status.cardEnergyWh).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining('RFID registers unavailable'));
   });
 
   it('should write force state and amperage holding registers', async () => {

@@ -5,6 +5,7 @@ import type { MatterbridgeEndpoint, PlatformMatterbridge } from 'matterbridge';
 import type { AnsiLogger } from 'matterbridge/logger';
 import { VendorId } from 'matterbridge/matter';
 
+import { EMPTY_CARD_ENERGY_WH } from '../src/modbus/registers.js';
 import type { GoEClient, GoEStatus } from '../src/modbus/types.js';
 
 const discoverGoEChargers = jest.fn(async () => [
@@ -35,6 +36,9 @@ const mockStatus: GoEStatus = {
   totalEnergyMwh: 0,
   serial: '206540',
   hostname: 'C2Home_Gemini_206540',
+  unlockedBy: 0,
+  rfidUid: null,
+  cardEnergyWh: [...EMPTY_CARD_ENERGY_WH],
 };
 
 const mockMatterbridge: PlatformMatterbridge = {
@@ -67,9 +71,9 @@ const mockMatterbridge: PlatformMatterbridge = {
   matterbridgePluginDirectory: path.join('.cache', 'jest', 'GoEPluginDiscovery', 'Matterbridge'),
   matterbridgeCertDirectory: path.join('.cache', 'jest', 'GoEPluginDiscovery', '.mattercert'),
   globalModulesDirectory: path.join('.cache', 'jest', 'GoEPluginDiscovery', 'node_modules'),
-  matterbridgeVersion: '3.9.0',
-  matterbridgeLatestVersion: '3.9.0',
-  matterbridgeDevVersion: '3.9.0',
+  matterbridgeVersion: '3.10.9',
+  matterbridgeLatestVersion: '3.10.9',
+  matterbridgeDevVersion: '3.10.9',
   frontendVersion: '3.0.0',
   bridgeMode: 'bridge',
   restartMode: 'docker',

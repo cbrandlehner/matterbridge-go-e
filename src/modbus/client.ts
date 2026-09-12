@@ -7,6 +7,7 @@ import type { AnsiLogger } from 'matterbridge/logger';
 import ModbusImport from 'modbus-serial';
 
 import {
+  EMPTY_CARD_ENERGY_WH,
   HOLDING_AMPERE_VOLATILE,
   HOLDING_FORCE_STATE,
   INPUT_ALLOW,
@@ -15,11 +16,18 @@ import {
   INPUT_ENERGY_TOTAL,
   INPUT_ERROR,
   INPUT_POWER_TOTAL,
+  INPUT_RFID_CARD,
   INPUT_SERIAL,
+  INPUT_UNLOCKED_BY,
   INPUT_VOLT_L1,
+  RFID_BLOCK_REGISTER_COUNT,
+  RFID_UID_REGISTER_COUNT,
   ampRawToMa,
+  decodeRfidUid,
   powerRawToMw,
   readAsciiRegisters,
+  readBinaryRegisters,
+  readCardEnergyWh,
   readUint32Be,
   sessionEnergyRawToWh,
   totalEnergyRawToMwh,
@@ -128,6 +136,7 @@ export class GoEModbusClient implements GoEClient {
 
     const serialFromModbus = readAsciiRegisters(identity.data, 0, 6);
     const hostnameFromModbus = readAsciiRegisters(identity.data, 6, 6);
+    const rfid = await this.readRfidRegisters();
 
     return {
       carState,
@@ -140,7 +149,33 @@ export class GoEModbusClient implements GoEClient {
       totalEnergyMwh: totalEnergyRawToMwh(totalRaw),
       serial: this.config.serial ?? serialFromModbus,
       hostname: this.config.name ?? hostnameFromModbus,
+      unlockedBy: rfid.unlockedBy,
+      rfidUid: rfid.rfidUid,
+      cardEnergyWh: rfid.cardEnergyWh,
     };
+  }
+
+  /**
+   * Reads RFID unlock slot, last scanned UID, and per-card energy counters.
+   *
+   * Firmware older than 55.5 may reject these registers; the charger stays
+   * online and RFID fields fall back to empty values.
+   *
+   * @returns {Promise<{ unlockedBy: number; rfidUid: Uint8Array | null; cardEnergyWh: number[] }>} RFID snapshot.
+   */
+  private async readRfidRegisters(): Promise<{ unlockedBy: number; rfidUid: Uint8Array | null; cardEnergyWh: number[] }> {
+    try {
+      const unlocked = await this.client.readInputRegisters(INPUT_UNLOCKED_BY, 1);
+      const block = await this.client.readInputRegisters(INPUT_RFID_CARD, RFID_BLOCK_REGISTER_COUNT);
+      return {
+        unlockedBy: unlocked.data[0] ?? 0,
+        rfidUid: decodeRfidUid(readBinaryRegisters(block.data, 0, RFID_UID_REGISTER_COUNT)),
+        cardEnergyWh: readCardEnergyWh(block.data, RFID_UID_REGISTER_COUNT),
+      };
+    } catch (error) {
+      this.log.debug(`RFID registers unavailable on ${this.config.host}: ${String(error)}`);
+      return { unlockedBy: 0, rfidUid: null, cardEnergyWh: [...EMPTY_CARD_ENERGY_WH] };
+    }
   }
 
   /**

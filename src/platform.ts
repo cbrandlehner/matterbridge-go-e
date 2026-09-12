@@ -4,15 +4,19 @@
  */
 
 import { type BasePlatformConfig, MatterbridgeDynamicPlatform, type PlatformMatterbridge } from 'matterbridge';
-import { Evse } from 'matterbridge/devices';
+import type { Evse } from 'matterbridge/devices';
 import type { AnsiLogger, LogLevel } from 'matterbridge/logger';
 import { DeviceEnergyManagement, EnergyEvse } from 'matterbridge/matter/clusters';
 
 import { discoverGoEChargers } from './discovery/mdns.js';
+import { createGoEEvse } from './evse.js';
 import { createGoEClient } from './modbus/client.js';
 import { mapOfflineToMatter, mapStatusToMatter } from './modbus/mapper.js';
-import { clamp } from './modbus/registers.js';
-import type { ChargerConnectionConfig, GoEClient } from './modbus/types.js';
+import { clamp, formatRfidUidHex } from './modbus/registers.js';
+import type { ChargerConnectionConfig, GoEClient, GoEStatus } from './modbus/types.js';
+
+/** Minimum Matterbridge host version that exposes Evse RFID options and `triggerRfidEvent()`. */
+const MIN_MATTERBRIDGE_VERSION = '3.10.9';
 
 /** Plugin configuration for matterbridge-go-e. */
 export type GoEPlatformConfig = BasePlatformConfig & {
@@ -29,6 +33,8 @@ type ChargerRuntime = {
   evse: Evse;
   deviceId: string;
   connected: boolean;
+  lastRfidUidKey: string;
+  lastUnlockedBy: number;
 };
 
 const STARTUP_CONNECT_ATTEMPTS = 3;
@@ -58,9 +64,9 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
     this.clientFactory = clientFactory;
 
-    if (typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.9.0')) {
+    if (typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion(MIN_MATTERBRIDGE_VERSION)) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "3.9.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "${MIN_MATTERBRIDGE_VERSION}". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 
@@ -98,7 +104,7 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
 
       try {
         const status = await runtime.client.readStatus();
-        await this.applyStatus(runtime.evse, status);
+        await this.applyStatus(runtime, status);
         this.log.info(`Configured EVSE ${runtime.evse.deviceName} (${runtime.config.host})`);
       } catch (error) {
         await this.markChargerOffline(runtime, error);
@@ -245,13 +251,15 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
       const serial = chargerConfig.serial ?? status.serial ?? chargerConfig.host;
       const deviceId = this.runtimeDeviceId(serial);
 
-      const evse = new Evse(deviceName, serial);
+      const evse = createGoEEvse(deviceName, serial);
       const runtime: ChargerRuntime = {
         config: chargerConfig,
         client,
         evse,
         deviceId,
         connected: true,
+        lastRfidUidKey: '',
+        lastUnlockedBy: 0,
       };
       this.wireCommandHandlers(runtime);
 
@@ -302,7 +310,7 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
       });
       runtime.client = client;
       runtime.connected = true;
-      await this.applyStatus(runtime.evse, status);
+      await this.applyStatus(runtime, status);
       this.log.info(`go-e at ${runtime.config.host} is back online`);
     } catch {
       await client.close().catch(() => {
@@ -371,7 +379,7 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
 
       try {
         const status = await runtime.client.readStatus();
-        await this.applyStatus(runtime.evse, status);
+        await this.applyStatus(runtime, status);
       } catch (error) {
         await this.markChargerOffline(runtime, error);
       }
@@ -381,10 +389,11 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
   /**
    * Applies a go-e status snapshot to a Matter EVSE endpoint.
    *
-   * @param {Evse} evse - Matter EVSE endpoint.
-   * @param {import('./modbus/types.js').GoEStatus} status - go-e status snapshot.
+   * @param {ChargerRuntime} runtime - Charger runtime owning the EVSE endpoint.
+   * @param {GoEStatus} status - go-e status snapshot.
    */
-  private async applyStatus(evse: Evse, status: import('./modbus/types.js').GoEStatus): Promise<void> {
+  private async applyStatus(runtime: ChargerRuntime, status: GoEStatus): Promise<void> {
+    const evse = runtime.evse;
     const updates = mapStatusToMatter(status);
 
     await evse.updateAttribute(EnergyEvse, 'state', updates.state, this.log);
@@ -411,7 +420,35 @@ export class GoEPlatform extends MatterbridgeDynamicPlatform {
       await evse.updateAttribute(EnergyEvse, 'sessionEnergyCharged', updates.sessionEnergyWh * 1000, this.log);
     }
 
+    await this.applyRfid(runtime, status);
     await this.applyOnlineState(evse);
+  }
+
+  /**
+   * Emits a Matter EnergyEvse `Rfid` event when a new card scan or session unlock is observed.
+   *
+   * Fires when the last-scanned UID changes, or when `UNLOCKED_BY` transitions from 0 to a
+   * slot with a known UID (same chip scanned again for a new session).
+   *
+   * @param {ChargerRuntime} runtime - Charger runtime with RFID edge state.
+   * @param {GoEStatus} status - go-e status snapshot including RFID registers.
+   */
+  private async applyRfid(runtime: ChargerRuntime, status: GoEStatus): Promise<void> {
+    const uidKey = formatRfidUidHex(status.rfidUid);
+    const uidChanged = uidKey !== '' && uidKey !== runtime.lastRfidUidKey;
+    const sessionStarted = status.unlockedBy > 0 && runtime.lastUnlockedBy === 0 && uidKey !== '';
+
+    if (status.rfidUid && (uidChanged || sessionStarted)) {
+      const evse = runtime.evse as Evse & { triggerRfidEvent?: (uid: Uint8Array, log?: AnsiLogger) => Promise<boolean> };
+      if (typeof evse.triggerRfidEvent === 'function') {
+        await evse.triggerRfidEvent(status.rfidUid, this.log);
+      }
+      this.log.info(`RFID scan on ${runtime.config.host}: uid=${uidKey} card=${status.unlockedBy}`);
+      this.log.debug(`RFID card energy (Wh) on ${runtime.config.host}: ${status.cardEnergyWh.join(',')}`);
+    }
+
+    runtime.lastRfidUidKey = uidKey;
+    runtime.lastUnlockedBy = status.unlockedBy;
   }
 
   /**

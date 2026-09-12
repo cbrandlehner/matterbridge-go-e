@@ -30,13 +30,14 @@ See **[docs/SmartHome.md](./docs/SmartHome.md)** for Matter controller compatibi
 - One Matter EVSE endpoint per configured go-e charger
 - Modbus TCP polling (registers per [go-e API v2](https://github.com/goecharger/go-eCharger-API-v2/blob/main/modbus-en.md))
 - Matter commands: disable charging, enable charging with current limit
+- RFID card scans published as Matter EnergyEvse `Rfid` events (last UID, unlock slot, per-card energy)
 - Electrical power metrics and lifetime energy on the ElectricalSensor child endpoint
 - Offline detection with automatic reconnect
 - Optional mDNS discovery (`_go-e._go-eCharger._tcp.`)
 
 ## Installation
 
-Requires [Matterbridge](https://www.npmjs.com/package/matterbridge) v3.9+ and Node.js 22+.
+Requires [Matterbridge](https://www.npmjs.com/package/matterbridge) v3.10.9+ and Node.js 22+.
 
 ### Via Matterbridge frontend
 
