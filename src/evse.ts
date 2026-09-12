@@ -40,7 +40,7 @@ export function createGoEEvse(deviceName: string, serial: string, EvseClass: Rfi
  * @returns {Promise<void>} Resolves after the host RFID helper returns.
  */
 export async function emitRfidEvent(evse: Evse, uid: Uint8Array, log: AnsiLogger): Promise<void> {
-  const triggerRfidEvent = Reflect.get(evse, 'triggerRfidEvent');
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- triggerRfidEvent is not in the 3.9.x Evse typings
+  const triggerRfidEvent: unknown = Reflect.get(evse, 'triggerRfidEvent');
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- host RFID helper is not in the 3.9.x Evse typings
   await (triggerRfidEvent as (this: Evse, uid: Uint8Array, log?: AnsiLogger) => Promise<boolean>).call(evse, uid, log);
 }
